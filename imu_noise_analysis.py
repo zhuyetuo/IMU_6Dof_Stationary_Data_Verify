@@ -25,9 +25,13 @@ from scipy import signal
 warnings.filterwarnings('ignore')
 
 matplotlib.rcParams['font.sans-serif'] = [
-    'SimHei', 'Arial Unicode MS', 'Microsoft YaHei', 'DejaVu Sans'
+    'WenQuanYi Zen Hei', 'WenQuanYi Micro Hei',
+    'Noto Sans CJK SC', 'Source Han Sans CN',
+    'SimHei', 'Arial Unicode MS',
+    'DejaVu Sans',
 ]
-matplotlib.rcParams['axes.unicode_minus'] = True
+matplotlib.rcParams['axes.unicode_minus'] = False
+matplotlib.rcParams['axes.formatter.use_mathtext'] = False
 
 # ─── 配置 ───────────────────────────────────────────────────────────────────
 SCRIPT_DIR     = os.path.dirname(os.path.abspath(__file__))
@@ -136,6 +140,19 @@ def allan_variance(data, fs):
     return np.array(taus), np.array(avars)
 
 
+def _plain_log_fmt(x, pos):
+    """对数轴刻度标签：纯文本，不走 mathtext，避免 WenQuanYi 缺少 U+2212。"""
+    import math as _math
+    if x <= 0:
+        return ''
+    exp = int(round(_math.log10(x)))
+    if exp == 0:
+        return '1'
+    sign = '-' if exp < 0 else ''
+    return f'10^{sign}{abs(exp)}'
+
+
+
 def style_ax(ax, title, text_c='#e0e0e0', bg='#1a1d2e', grid_c='#2a2d3e'):
     ax.set_facecolor(bg)
     ax.set_title(title, color=text_c, fontsize=11, pad=8)
@@ -145,9 +162,15 @@ def style_ax(ax, title, text_c='#e0e0e0', bg='#1a1d2e', grid_c='#2a2d3e'):
     ax.grid(True, color=grid_c, linewidth=0.5, alpha=0.7)
     ax.xaxis.label.set_color(text_c)
     ax.yaxis.label.set_color(text_c)
-    fmt = mticker.FuncFormatter(lambda x, _: str(x).replace('−', '-'))
-    ax.xaxis.set_major_formatter(fmt)
-    ax.yaxis.set_major_formatter(fmt)
+    # 线性轴用 ScalarFormatter（ASCII 负号），对数轴用纯文本 formatter
+    for axis, scale in ((ax.xaxis, ax.get_xscale()), (ax.yaxis, ax.get_yscale())):
+        if scale == 'log':
+            axis.set_major_formatter(mticker.FuncFormatter(_plain_log_fmt))
+            axis.set_minor_formatter(mticker.NullFormatter())
+        else:
+            fmt = mticker.ScalarFormatter(useOffset=False, useMathText=False)
+            fmt.set_scientific(False)
+            axis.set_major_formatter(fmt)
 
 
 # ─── 主流程 ─────────────────────────────────────────────────────────────────
