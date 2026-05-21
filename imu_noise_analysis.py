@@ -12,10 +12,12 @@ IMU 6轴静置噪声分析
 
 import os
 import sys
+import glob
 import warnings
 
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.font_manager as _fm
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
@@ -24,12 +26,49 @@ from scipy import signal
 
 warnings.filterwarnings('ignore')
 
-matplotlib.rcParams['font.sans-serif'] = [
-    'WenQuanYi Zen Hei', 'WenQuanYi Micro Hei',
-    'Noto Sans CJK SC', 'Source Han Sans CN',
-    'SimHei', 'Arial Unicode MS',
-    'DejaVu Sans',
-]
+# ─── CJK 字体自动检测（直接注册字体文件，绕开 matplotlib 缓存问题）──────────
+def _find_and_register_cjk_font():
+    """
+    在常见 Linux 路径下找 CJK 字体文件，用 addfont 直接注册到 matplotlib，
+    返回字体家族名；未找到时返回 None 并打印安装提示。
+    """
+    search = [
+        # WenQuanYi（Ubuntu: sudo apt install fonts-wqy-zenhei）
+        '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+        '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
+        # Noto CJK（Ubuntu: sudo apt install fonts-noto-cjk）
+        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+        '/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc',
+        '/usr/share/fonts/truetype/noto/NotoSansCJKsc-Regular.otf',
+        # 通配符兜底
+        '/usr/share/fonts/**/*wqy*.ttc',
+        '/usr/share/fonts/**/*wqy*.ttf',
+        '/usr/share/fonts/**/*[Nn]oto*[Cc][Jj][Kk]*.ttc',
+        '/usr/share/fonts/**/*[Nn]oto*[Cc][Jj][Kk]*.otf',
+        '/usr/share/fonts/**/*[Ss]ource*[Hh]an*.otf',
+        '~/.local/share/fonts/**/*.ttc',
+        '~/.local/share/fonts/**/*.ttf',
+    ]
+    for pat in search:
+        hits = sorted(glob.glob(os.path.expanduser(pat), recursive=True))
+        if hits:
+            font_path = hits[0]
+            _fm.fontManager.addfont(font_path)          # 直接注册，不依赖缓存
+            name = _fm.FontProperties(fname=font_path).get_name()
+            return name
+
+    print("=" * 60)
+    print("  警告：未找到中文字体，图表中文将显示为方块")
+    print("  Ubuntu 安装命令：")
+    print("    sudo apt install fonts-wqy-zenhei")
+    print("  安装后重新运行脚本即可。")
+    print("=" * 60)
+    return None
+
+_CJK_FONT = _find_and_register_cjk_font()
+matplotlib.rcParams['font.sans-serif'] = (
+    [_CJK_FONT] if _CJK_FONT else []
+) + ['DejaVu Sans', 'Arial Unicode MS']
 matplotlib.rcParams['axes.unicode_minus'] = False
 matplotlib.rcParams['axes.formatter.use_mathtext'] = False
 

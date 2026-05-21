@@ -6,9 +6,26 @@
 
 ## 快速开始
 
+### 1. 安装依赖
+
 ```bash
 pip install pandas numpy scipy matplotlib
+```
 
+### 2. 安装中文字体（Ubuntu / Debian 必须）
+
+脚本会自动检测系统中的 CJK 字体并注册，无需手动配置 matplotlib。  
+若尚未安装中文字体，图表标题和标签会显示为方块，请先执行：
+
+```bash
+sudo apt install fonts-wqy-zenhei
+```
+
+安装完直接运行脚本即可，**无需**清除 matplotlib 缓存或修改任何配置文件。
+
+### 3. 运行
+
+```bash
 python imu_noise_analysis.py [LOG文件路径]
 # 示例
 python imu_noise_analysis.py IMU_1gb.LOG
